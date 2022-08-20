@@ -16,10 +16,14 @@ import com.returnkey.services.ReturnService;
 import java.io.File;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 
 @RestController
@@ -41,7 +45,8 @@ public class ReturnController {
     ItemService itemService;
     
     @RequestMapping(value = "/import", method = RequestMethod.POST)
-    public String importReturns() {
+    public ResponseEntity<Object> importReturns() {
+        Map<String, Object> map = new HashMap<String, Object>();
         try {
             Scanner sc = new Scanner(new File("C:\\Users\\Robi Goh\\Desktop\\orders.csv"));
             //skip header
@@ -86,11 +91,11 @@ public class ReturnController {
         } catch (Exception e) {
             System.out.print(e);
         }
-        return "Import Successful";
+        return generateResponse("Import Successful", HttpStatus.OK, null);
     }
     
     @RequestMapping(value = "/pending/returns", method = RequestMethod.POST)
-    public String pendingReturns(@RequestBody Order order) {
+    public ResponseEntity<Object> pendingReturns(@RequestBody Order order) {
         Return ret;
         if (!orderService.findByOrderIdAndEmail(order).isEmpty()) {
             ret = new Return();
@@ -99,13 +104,15 @@ public class ReturnController {
             ret.setStatus(STATUS_WAITING);
             ret.setToken(uuidAsString);
             ret.setOrderId(order.getOrderId());
-            return returnService.addReturn(ret);
+            String token = returnService.addReturn(ret);
+            
+            return generateResponse("Your token is : " + token, HttpStatus.OK, ret);
         }
-        return "Invalid order id/email address";
+        return generateResponse("Invalid order id/email address", HttpStatus.NOT_FOUND, null);
     }
     
     @RequestMapping(value = "/returns", method = RequestMethod.POST)
-    public String returns(@RequestBody Return ret) {
+    public ResponseEntity<Object> returns(@RequestBody Return ret) {
         Return returnPending = returnService.findPendingReturn(ret);
         boolean found;
         boolean enough;
@@ -115,7 +122,10 @@ public class ReturnController {
         
         if (returnPending != null) {
             if (returnPending.getStatus().equalsIgnoreCase(STATUS_COMPLETE)) {
-                return returnPending.getToken() + " status has been complete";
+                return generateResponse(returnPending.getToken() + " status has been complete", HttpStatus.BAD_REQUEST, null);
+            }
+            if (ret.getReturnDt().isEmpty()) {
+                return generateResponse("No item to return", HttpStatus.BAD_REQUEST, null);
             }
             List<Order> orders = orderService.findOrderByOrderId(returnPending.getOrderId());
             for (ReturnDt rDt : ret.getReturnDt()) {
@@ -126,9 +136,9 @@ public class ReturnController {
                 for (Order o : orders) {
                     if (rDt.getItem().getId() == o.getItem().getId()) {
                         found = true;
-                        o.setQuantity(rDt.getQuantity());
-                        orderList.add(o);
                         if (rDt.getQuantity() <= o.getQuantity()) {
+                            o.setQuantity(rDt.getQuantity());
+                            orderList.add(o);
                             enough = true;
                         }
                         if (o.isReturned()) {
@@ -141,22 +151,23 @@ public class ReturnController {
                     }
                 }
                 if (!found) {
-                    return "Item id " + rDt.getItem().getId() + " not found in order id " + returnPending.getOrderId();
+                    return generateResponse("Item id " + rDt.getItem().getId() + " not found in order id " + returnPending.getOrderId(), HttpStatus.BAD_REQUEST, null);
                 } 
                 if (!enough) {
-                    return "Item id " + rDt.getItem().getId() + " not enough to do return";
+                    return generateResponse("Item id " + rDt.getItem().getId() + " not enough to do return", HttpStatus.BAD_REQUEST, null);
                 }
                 if (isReturned) {
-                    return "Item id " + rDt.getItem().getId() + " has been returned before";
+                    return generateResponse("Item id " + rDt.getItem().getId() + " has been returned before", HttpStatus.BAD_REQUEST, orders);
                 }
                 if (wrongQty) {
-                    return "Item id " + rDt.getItem().getId() + " should return in positive value";
+                    return generateResponse("Item id " + rDt.getItem().getId() + " should return quantity in positive value", HttpStatus.BAD_REQUEST, null);
                 }
             }
             returnPending.setStatus(STATUS_COMPLETE);
             returnService.updateReturn(returnPending);
             ReturnDt retDt;
             BigDecimal totalRefund = BigDecimal.ZERO;
+            List<ReturnDt> retDtList = new ArrayList<>();
             
             for (Order o : orderList) {
                 o.setReturned(true);
@@ -168,48 +179,53 @@ public class ReturnController {
                 retDt.setQuantity(o.getQuantity());
                 retDt.setQcStatus(QC_STATUS_ACCEPTED); // Set default qc status to Accepted
                 returnDtService.addOrSaveReturnDt(retDt);
+                retDtList.add(retDt);
                 
                 totalRefund = totalRefund.add(itemService.getItemPrice(o.getItem().getId()).multiply(new BigDecimal(o.getQuantity())));
             }
-            
-            return "Return Success!\nReturn id : " + returnPending.getId() + "\nTotal refund : $" + totalRefund;
+            returnPending.setReturnDt(retDtList);
+            return generateResponse("Return Success! Total refund : $" + totalRefund, HttpStatus.OK, returnPending);
         }
-        return "Wrong Token";
+        return generateResponse("Wrong Token", HttpStatus.BAD_REQUEST, null);
     }
     
     @RequestMapping(value = "/returns/{retId}", method = RequestMethod.GET)
-    public String getReturnsById(@PathVariable Long retId) {
+    public ResponseEntity<Object> getReturnsById(@PathVariable Long retId) {
         Return ret = returnService.getReturnById(retId);
         if (ret == null) {
-            return "Return id not found";
+            return generateResponse("Return id not found", HttpStatus.BAD_REQUEST, null);
         }
         
         String itemDt = "";
         BigDecimal totalRefund = BigDecimal.ZERO;
         for (ReturnDt rDt : ret.getReturnDt()) {
-            itemDt += "\n\nSKU : " + rDt.getItem().getSku();
-            itemDt += "\nQC checked : " + rDt.getQcStatus();
-            itemDt += "\nQty returned : " + rDt.getQuantity();
-            itemDt += "\nPrice : $" + rDt.getItem().getPrice();
-            
             if (rDt.getQcStatus().equalsIgnoreCase(QC_STATUS_ACCEPTED)) {
                 totalRefund = totalRefund.add(new BigDecimal(rDt.getQuantity()).multiply(rDt.getItem().getPrice()));
             }
         }
-        return "Return id : " + retId + "\nStatus : " + ret.getStatus() + itemDt 
-                + "\n\nRefund amount : $" + totalRefund;
+        return generateResponse("Return id : " + retId + ", Status : " + ret.getStatus() 
+                + ", Refund amount : $" + totalRefund, HttpStatus.OK, ret);
     }
     
     @RequestMapping(value = "/returns/{retId}/items/{itemId}/qc/{status}", method = RequestMethod.PUT)
-    public String getReturnsById(@PathVariable("retId") Long retId, @PathVariable("itemId") Long itemId, 
+    public ResponseEntity<Object> getReturnsById(@PathVariable("retId") Long retId, @PathVariable("itemId") Long itemId, 
             @PathVariable("status") String status) {
         ReturnDt rDt = returnDtService.findReturnDtByReturnIdAndItemId(retId, itemId);
         if (rDt == null) {
-            return "Return id and/or item id not found";
+            return generateResponse("Return id and/or item id not found", HttpStatus.BAD_REQUEST, null);
         } else {
             rDt.setQcStatus(status);
             returnDtService.addOrSaveReturnDt(rDt);
-            return "Update QC status completed";
+            return generateResponse("Update QC status completed", HttpStatus.OK, rDt);
         }
+    }
+    
+    public ResponseEntity<Object> generateResponse(String message, HttpStatus status, Object responseObj) {
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put("message", message);
+        map.put("status", status.value());
+        map.put("data", responseObj);
+
+        return new ResponseEntity<Object>(map,status);
     }
 }

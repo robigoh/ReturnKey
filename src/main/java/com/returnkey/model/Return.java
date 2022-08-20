@@ -4,6 +4,7 @@
  */
 package com.returnkey.model;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import java.util.List;
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -30,6 +31,7 @@ public class Return {
     @Column(name = "order_id")
     private String orderId;
     @OneToMany(mappedBy = "returns")
+    @JsonManagedReference
     private List<ReturnDt> returnDt;
 
     public Long getId() {
