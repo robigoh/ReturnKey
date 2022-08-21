@@ -4,11 +4,8 @@
  */
 package com.returnkey.services;
 
-import com.returnkey.model.Order;
 import com.returnkey.model.Return;
 import com.returnkey.repository.ReturnRepository;
-import java.util.List;
-import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
