@@ -1,6 +1,5 @@
 package com.returnkey.model;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;

@@ -44,4 +44,9 @@ public class ReturnService {
     public void delAll() {
         returnRepository.deleteAll();
     }
+    
+    @Transactional
+    public void updateReturnStatus(String status, Long id) {
+        returnRepository.updateReturnStatus(status, id);
+    }
 }

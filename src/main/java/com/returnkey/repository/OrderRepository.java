@@ -6,6 +6,7 @@ package com.returnkey.repository;
 
 import com.returnkey.model.Order;
 import java.util.List;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.query.Param;
@@ -21,4 +22,8 @@ public interface OrderRepository<P> extends CrudRepository<Order, Long> {
     
     @Query("SELECT a FROM Order a WHERE a.orderId = :orderId")
     List<Order> findOrderByOrderId(@Param("orderId") String orderId);
+    
+    @Modifying
+    @Query("UPDATE Order a SET a.returned = true WHERE a.id = :id")
+    void updateOrderToRetured(@Param("id") Long id);
 }

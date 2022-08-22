@@ -60,4 +60,9 @@ public class OrderService {
     public void delAll() {
         orderRepository.deleteAll();
     }
+    
+    @Transactional
+    public void updateOrderToRetured(Long id) {
+        orderRepository.updateOrderToRetured(id);
+    }
 }

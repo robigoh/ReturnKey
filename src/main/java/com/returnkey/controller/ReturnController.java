@@ -125,6 +125,8 @@ public class ReturnController {
         boolean enough;
         boolean isReturned;
         boolean wrongQty;
+        List<ReturnDt> returnDtList = new ArrayList<>();
+        ReturnDt returnDt;
         List<Order> orderList = new ArrayList<>();
         
         //if valid token
@@ -139,7 +141,6 @@ public class ReturnController {
             }
             //get orders by order id
             List<Order> orders = orderService.findOrderByOrderId(returnPending.getOrderId());
-            int returedQty = 0;
             Order order = new Order();
             for (ReturnDt rDt : ret.getReturnDt()) {
                 found = false;
@@ -151,11 +152,15 @@ public class ReturnController {
                     //if return item found in order
                     if (rDt.getItem().getId() == o.getItem().getId()) {
                         found = true;
-                        order = o;
                         //if return qty less than or equal to order qty
                         if (rDt.getQuantity() <= o.getQuantity()) {
-                            returedQty = rDt.getQuantity();
+                            order = o;
                             orderList.add(o);
+                            
+                            returnDt = new ReturnDt();
+                            returnDt.setItem(o.getItem());
+                            returnDt.setQuantity(rDt.getQuantity());
+                            returnDtList.add(returnDt);
                             enough = true;
                         }
                         //if item has been returned before
@@ -187,28 +192,28 @@ public class ReturnController {
                 }
             }
             //update return status to complete
-            returnPending.setStatus(STATUS_COMPLETE);
-            returnService.updateReturn(returnPending);
+            returnService.updateReturnStatus(STATUS_COMPLETE, returnPending.getId());
             ReturnDt retDt;
             BigDecimal totalRefund = BigDecimal.ZERO;
             List<ReturnDt> retDtList = new ArrayList<>();
             
             for (Order o : orderList) {
                 //update returned flag to true
-                o.setReturned(true);
-                orderService.updateReturn(o);
-                
+                orderService.updateOrderToRetured(o.getId());
+            }
+            
+            for (ReturnDt rDt : returnDtList) {
                 //insert return dt
                 retDt = new ReturnDt();
                 retDt.setReturns(returnPending);
-                retDt.setItem(o.getItem());
-                retDt.setQuantity(returedQty);
+                retDt.setItem(rDt.getItem());
+                retDt.setQuantity(rDt.getQuantity());
                 retDt.setQcStatus(QC_STATUS_ACCEPTED); // Set default qc status to Accepted
                 returnDtService.addOrSaveReturnDt(retDt);
                 retDtList.add(retDt);
                 
                 //calculate total refund amount
-                totalRefund = totalRefund.add(itemService.getItemPrice(o.getItem().getId()).multiply(new BigDecimal(returedQty)));
+                totalRefund = totalRefund.add(itemService.getItemPrice(rDt.getItem().getId()).multiply(new BigDecimal(rDt.getQuantity())));
             }
             returnPending.setReturnDt(retDtList);
             //return success
