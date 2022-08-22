@@ -206,7 +206,7 @@ public class ReturnController {
                 retDtList.add(retDt);
                 
                 //calculate total refund amount
-                totalRefund = totalRefund.add(itemService.getItemPrice(o.getItem().getId()).multiply(new BigDecimal(o.getQuantity())));
+                totalRefund = totalRefund.add(itemService.getItemPrice(o.getItem().getId()).multiply(new BigDecimal(returedQty)));
             }
             returnPending.setReturnDt(retDtList);
             //return success
