@@ -30,7 +30,6 @@ public class Return {
     @Column(name = "order_id")
     private String orderId;
     @OneToMany(mappedBy = "returns")
-//    @JsonManagedReference(value="returnDt-return")
     private List<ReturnDt> returnDt;
 
     public Long getId() {

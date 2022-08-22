@@ -140,6 +140,7 @@ public class ReturnController {
             //get orders by order id
             List<Order> orders = orderService.findOrderByOrderId(returnPending.getOrderId());
             int returedQty = 0;
+            Order order = new Order();
             for (ReturnDt rDt : ret.getReturnDt()) {
                 found = false;
                 enough = false;
@@ -150,6 +151,7 @@ public class ReturnController {
                     //if return item found in order
                     if (rDt.getItem().getId() == o.getItem().getId()) {
                         found = true;
+                        order = o;
                         //if return qty less than or equal to order qty
                         if (rDt.getQuantity() <= o.getQuantity()) {
                             returedQty = rDt.getQuantity();
@@ -177,7 +179,7 @@ public class ReturnController {
                 }
                 //if item has already been returned
                 if (isReturned) {
-                    return generateResponse("Item id " + rDt.getItem().getId() + " has been returned before", HttpStatus.BAD_REQUEST, orders);
+                    return generateResponse("Item id " + rDt.getItem().getId() + " has been returned before", HttpStatus.BAD_REQUEST, order);
                 }
                 //if return qty is invalid (less than 1)
                 if (wrongQty) {

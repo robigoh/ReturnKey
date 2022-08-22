@@ -31,7 +31,6 @@ public class Order {
     private boolean returned;
     @ManyToOne(fetch=FetchType.EAGER)
     @JoinColumn(name="item_id")
-    @JsonBackReference(value="item-order")
     private Item item;
 
     public Long getId() {

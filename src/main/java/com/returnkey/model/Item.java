@@ -31,8 +31,7 @@ public class Item {
     private String itemName;
     @Column(name = "price")
     private BigDecimal price;
-    @OneToMany(mappedBy = "item")
-    @JsonManagedReference(value="item-order")
+    @OneToMany(mappedBy = "id")
     private List<Order> orders;
     @OneToMany(mappedBy = "id")
     private List<ReturnDt> returnDts;
