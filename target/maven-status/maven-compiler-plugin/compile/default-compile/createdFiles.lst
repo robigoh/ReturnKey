@@ -1,10 +1,10 @@
+com\returnkey\controller\ReturnController.class
 com\returnkey\repository\ReturnRepository.class
 com\returnkey\services\ReturnService.class
 com\returnkey\repository\OrderRepository.class
 com\returnkey\config\DataConfig.class
 com\returnkey\model\Item.class
 com\returnkey\repository\ItemRepository.class
-com\returnkey\controller\OrderController.class
 com\returnkey\config\ReturnKey.class
 com\returnkey\model\Order.class
 com\returnkey\repository\ReturnDtRepository.class

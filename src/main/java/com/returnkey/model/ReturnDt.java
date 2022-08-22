@@ -7,6 +7,7 @@ package com.returnkey.model;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
@@ -31,9 +32,9 @@ public class ReturnDt {
     private int quantity;
     @Column(name = "qc_status")
     private String qcStatus;
-    @ManyToOne
+    @ManyToOne(fetch=FetchType.EAGER)
     @JoinColumn(name="returns_id")
-    @JsonBackReference
+    @JsonBackReference(value="returnDt-return")
     private Return returns;
     
     public Long getId() {

@@ -139,6 +139,7 @@ public class ReturnController {
             }
             //get orders by order id
             List<Order> orders = orderService.findOrderByOrderId(returnPending.getOrderId());
+            int returedQty = 0;
             for (ReturnDt rDt : ret.getReturnDt()) {
                 found = false;
                 enough = false;
@@ -151,7 +152,7 @@ public class ReturnController {
                         found = true;
                         //if return qty less than or equal to order qty
                         if (rDt.getQuantity() <= o.getQuantity()) {
-                            o.setQuantity(rDt.getQuantity());
+                            returedQty = rDt.getQuantity();
                             orderList.add(o);
                             enough = true;
                         }
@@ -199,7 +200,7 @@ public class ReturnController {
                 retDt = new ReturnDt();
                 retDt.setReturns(returnPending);
                 retDt.setItem(o.getItem());
-                retDt.setQuantity(o.getQuantity());
+                retDt.setQuantity(returedQty);
                 retDt.setQcStatus(QC_STATUS_ACCEPTED); // Set default qc status to Accepted
                 returnDtService.addOrSaveReturnDt(retDt);
                 retDtList.add(retDt);
